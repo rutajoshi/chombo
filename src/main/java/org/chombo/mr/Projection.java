@@ -44,6 +44,9 @@ import org.chombo.util.SecondarySort;
 import org.chombo.util.Tuple;
 import org.chombo.util.Utility;
 
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+
 /**
  * Simple query with projection. Can do group by and order by.  If grouped by can do count or 
  * unique count. sum and avearge
@@ -54,7 +57,7 @@ public class Projection extends Configured implements Tool {
 
 	@Override
 	public int run(String[] args) throws Exception {
-        Job job = new Job(getConf());
+        Job job = Job.getInstance(getConf()); //new Job(getConf());
         String jobName = "Projection  and grouping  MR";
         job.setJobName(jobName);
         
@@ -64,6 +67,7 @@ public class Projection extends Configured implements Tool {
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
         Utility.setConfiguration(job.getConfiguration());
+	System.out.println("I HAVE SET THE CONFIGURATION");
         String operation = job.getConfiguration().get("projection.operation",  "project");
         
         if (operation.startsWith("grouping")) {
@@ -74,12 +78,12 @@ public class Projection extends Configured implements Tool {
             job.setMapOutputKeyClass(Tuple.class);
             job.setMapOutputValueClass(Text.class);
 
-            int numReducer = job.getConfiguration().getInt("pro.num.reducer", -1);
+            int numReducer = job.getConfiguration().getInt("num.reducer", -1);
             numReducer = -1 == numReducer ? job.getConfiguration().getInt("num.reducer", 1) : numReducer;
             job.setNumReduceTasks(numReducer);
             
             //order by
-        	boolean doOrderBy = job.getConfiguration().getInt("pro.orderBy.field", -1) >= 0;
+        	boolean doOrderBy = job.getConfiguration().getInt("orderBy.field", -1) >= 0;
         	if (doOrderBy) {
                 job.setGroupingComparatorClass(SecondarySort.TuplePairGroupComprator.class);
                 job.setPartitionerClass(SecondarySort.TupleTextPartitioner.class);
@@ -110,10 +114,10 @@ public class Projection extends Configured implements Tool {
 
         protected void setup(Context context) throws IOException, InterruptedException {
         	Configuration config = context.getConfiguration();
-        	keyField = config.getInt("pro.key.field", 0);
+        	keyField = config.getInt("key.field", 0);
         	fieldDelimRegex = config.get("field.delim.regex", ",");
         	fieldDelimOut = config.get("field.delim", ",");
-        	projectionFields = Utility.intArrayFromString(config.get("pro.projection.field"),fieldDelimRegex );
+        	projectionFields = Utility.intArrayFromString(config.get("projection.field"),fieldDelimRegex );
        }
         
         @Override
@@ -146,15 +150,23 @@ public class Projection extends Configured implements Tool {
          */
         protected void setup(Context context) throws IOException, InterruptedException {
         	Configuration config = context.getConfiguration();
-        	String operation = config.get("pro.projection.operation",  "project");
+        	Configuration.dumpConfiguration(config, new BufferedWriter(new OutputStreamWriter(System.out)));
+		String operation = config.get("projection.operation",  "project");
         	groupBy = operation.startsWith("grouping");
         	
-        	keyField = config.getInt("pro.key.field", 0);
-        	fieldDelimRegex = config.get("field.delim.regex", ",");
+        	keyField = config.getInt("key.field", 0);
+        	System.out.println("keyField = " + keyField);
+		fieldDelimRegex = config.get("field.delim.regex", ",");
+		System.out.println("fieldDelimRegex = " + fieldDelimRegex);
         	fieldDelimOut = config.get("field.delim.out", ",");
-        	projectionFields = Utility.intArrayFromString(config.get("pro.projection.field"),fieldDelimRegex );
-        	orderByField = config.getInt("pro.orderBy.field", -1);
-        	isOrderByFieldNumeric = config.getBoolean("pro.orderBy.filed.numeric", false);
+		System.out.println("fieldDelimOut = " + fieldDelimOut);
+		System.out.println("Trying to get projection field");
+		String projField = config.get("projection.field");
+		System.out.println("Got projection field: " + projField);
+        	projectionFields = Utility.intArrayFromString(projField, fieldDelimRegex);
+		System.out.println("Turned fields into array");
+        	orderByField = config.getInt("orderBy.field", -1);
+        	isOrderByFieldNumeric = config.getBoolean("orderBy.field.numeric", false);
        }
 
         /* (non-Javadoc)
@@ -211,20 +223,20 @@ public class Projection extends Configured implements Tool {
 		protected void setup(Context context) throws IOException, InterruptedException {
         	Configuration config = context.getConfiguration();
         	fieldDelim = config.get("field.delim.out", "[]");
-        	if (!StringUtils.isBlank(config.get("pro.agrregate.fumctions"))) {
-        		aggrFunctions = config.get("pro.agrregate.fumctions").split(fieldDelim);
+        	if (!StringUtils.isBlank(config.get("agrregate.fumctions"))) {
+        		aggrFunctions = config.get("agrregate.fumctions").split(fieldDelim);
         		aggrFunctionValues = new int[aggrFunctions.length];
         		aggrFunctionValuesMax = new int[aggrFunctions.length];
         		for (int i = 0; i < aggrFunctionValuesMax.length;  ++i) {
         			aggrFunctionValuesMax[i] = Integer.MIN_VALUE;
         		}
-				aggregateValueKeyPrefix = config.get("pro.aggregate.value.key.prefix");
+				aggregateValueKeyPrefix = config.get("aggregate.value.key.prefix");
 	        	redisCache = RedisCache.createRedisCache(config, "ch");
         	}
-        	sortOrderAscending = config.getBoolean("pro.sort.order.ascending", true);
-        	limitTo = config.getInt("pro.limit.to", -1);
-        	formatCompact = config.getBoolean("pro.format.compact", true);
-        	useRank = config.getBoolean("pro.use.rank", false);
+        	sortOrderAscending = config.getBoolean("sort.order.ascending", true);
+        	limitTo = config.getInt("limit.to", -1);
+        	formatCompact = config.getBoolean("format.compact", true);
+        	useRank = config.getBoolean("use.rank", false);
        }
 
 		/* (non-Javadoc)

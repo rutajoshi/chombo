@@ -53,11 +53,13 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.codehaus.jackson.map.ObjectMapper;
 
+/*
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+*/
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -110,6 +112,7 @@ public class Utility {
      */
     public static void setConfiguration(Configuration conf) throws Exception{
         String confFilePath = conf.get("conf.path");
+	System.out.println("setConfig1 confFilePath = " + confFilePath);
         if (null != confFilePath){
             FileInputStream fis = new FileInputStream(confFilePath);
             Properties configProps = new Properties();
@@ -118,6 +121,7 @@ public class Utility {
             for (Object key : configProps.keySet()){
                 String keySt = key.toString();
                 conf.set(keySt, configProps.getProperty(keySt));
+		System.out.println("configProps at " + keySt + " = " + configProps.getProperty(keySt));
             }
         }
     }
@@ -131,13 +135,14 @@ public class Utility {
     public static void setConfiguration(Configuration conf, String project) throws Exception{
         boolean found = false;
     	String confFilePath = conf.get(CONF_FILE_PROP_NAME);
-    	
+    	System.out.println("setConfig2 confFilePath = " + confFilePath);
     	//user provided config file path
         if (null != confFilePath){
-            if (confFilePath.startsWith(S3_PREFIX)) { 
+           /* if (confFilePath.startsWith(S3_PREFIX)) { 
             	loadConfigS3(conf, confFilePath);
 		        System.out.println("config found in user specified Amazon S3 file");
-            } else if (confFilePath.startsWith(HDFS_PREFIX)) {
+            } else*/
+		 if (confFilePath.startsWith(HDFS_PREFIX)) {
 		        loadConfigHdfs( conf,  confFilePath.substring(HDFS_PREFIX_LEN));
 		        System.out.println("config found in user specified HDFS file");
         	} else {
@@ -210,7 +215,7 @@ public class Utility {
        return found;
    }
 
-	private static boolean loadConfigS3(Configuration conf, String confFilePath) throws IOException {
+/*	private static boolean loadConfigS3(Configuration conf, String confFilePath) throws IOException {
         Matcher matcher = s3pattern.matcher(confFilePath);
         matcher.matches();
         String bucket = matcher.group(1);
@@ -228,7 +233,7 @@ public class Utility {
         }
         return true;
 	}	
-	
+*/	
     /**
      * sets configuration and defaults to project name based config file
      * @param conf
@@ -582,7 +587,10 @@ public class Utility {
      * @return
      */
     public static int[] intArrayFromString(String record, String delimRegex ) {
-    	int[] data = null;
+    	System.out.println("\n\nINSIDE intArrFromString");
+	System.out.println("Record = " + record);
+	System.out.println("delimRegex = " + delimRegex);
+	int[] data = null;
     	if (null != record) {
 	    	String[] items = record.split(delimRegex);
 	    	data = new int[items.length];
